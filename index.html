@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gmail PDF Auto-Save</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #080909;
+  --surface: #111214;
+  --surface2: #18191d;
+  --surface3: #1e2028;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #4ade80;
+  --accent2: #22c55e;
+  --accent-glow: rgba(74,222,128,0.15);
+  --accent-dim: rgba(74,222,128,0.08);
+  --text: #f0f2f5;
+  --text2: #7d8491;
+  --text3: #3d4149;
+  --mono: 'DM Mono', monospace;
+  --head: 'Syne', 'Noto Sans Thai', sans-serif;
+  --body: 'Noto Sans Thai', 'Syne', sans-serif;
+  --r: 12px;
+  --r-lg: 20px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.grid-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: gridDrift 40s linear infinite;
+}
+@keyframes gridDrift {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 60px 60px, 60px 60px; }
+}
+
+.orb {
+  position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+  filter: blur(80px); opacity: 0;
+  animation: orbIn 1.2s ease forwards;
+}
+.orb-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 70%);
+  top: -120px; left: 50%; transform: translateX(-50%);
+  animation-delay: 0.1s;
+}
+.orb-2 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(34,197,94,0.06) 0%, transparent 70%);
+  bottom: 200px; right: -80px;
+  animation-delay: 0.3s;
+}
+.orb-3 {
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(74,222,128,0.05) 0%, transparent 70%);
+  top: 60%; left: -60px;
+  animation-delay: 0.5s;
+}
+@keyframes orbIn { to { opacity: 1; } }
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px
+  );
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 640px; margin: 0 auto;
+  padding: 4rem 1.5rem 5rem;
+}
+
+.header {
+  margin-bottom: 3rem;
+  opacity: 0; transform: translateY(24px);
+  animation: fadeUp 0.7s cubic-bezier(0.2,0,0,1) 0.2s forwards;
+}
+
+.badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(74,222,128,0.2);
+  color: var(--accent);
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 12px; border-radius: 999px;
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+}
+.badge::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(74,222,128,0.12), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 3s ease infinite 1.2s;
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+.badge-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: blink 2s ease infinite;
+}
+@keyframes blink {
+  0%,100% { opacity: 1; box-shadow: 0 0 8px var(--accent); }
+  50% { opacity: 0.35; box-shadow: none; }
+}
+
+h1 {
+  font-family: var(--head);
+  font-size: clamp(32px, 6vw, 48px);
+  font-weight: 800; line-height: 1.1;
+  margin-bottom: 14px; letter-spacing: -0.02em;
+}
+h1 .hl {
+  color: var(--accent); position: relative; display: inline-block;
+}
+h1 .hl::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transform: scaleX(0); transform-origin: left;
+  animation: lineIn 0.6s ease 0.9s forwards;
+}
+@keyframes lineIn { to { transform: scaleX(1); } }
+
+.subtitle {
+  font-size: 15px; color: var(--text2);
+  line-height: 1.75; max-width: 420px; font-weight: 300;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 2rem;
+  margin-bottom: 1rem;
+  position: relative; overflow: hidden;
+  opacity: 0; transform: translateY(20px);
+  animation: fadeUp 0.6s cubic-bezier(0.2,0,0,1) forwards;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.card:hover { border-color: var(--border2); box-shadow: 0 0 40px rgba(0,0,0,0.4); }
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(74,222,128,0.35), transparent);
+  opacity: 0; transition: opacity var(--transition);
+}
+.card:hover::before { opacity: 1; }
+.card:nth-child(1) { animation-delay: 0.35s; }
+.card:nth-child(2) { animation-delay: 0.45s; }
+.card:nth-child(3) { animation-delay: 0.55s; }
+@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+.card-title {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title::before {
+  content: ''; display: inline-block;
+  width: 16px; height: 1px; background: var(--text3);
+}
+
+.field { margin-bottom: 1.25rem; }
+.field:last-of-type { margin-bottom: 0; }
+
+label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  margin-bottom: 8px; letter-spacing: 0.02em;
+}
+.label-icon {
+  width: 20px; height: 20px;
+  background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+}
+
+input, select {
+  width: 100%; height: 44px; padding: 0 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); color: var(--text);
+  font-family: var(--body); font-size: 14px;
+  outline: none; appearance: none;
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+input::placeholder { color: var(--text3); }
+input:hover, select:hover { border-color: var(--border2); }
+input:focus, select:focus {
+  border-color: var(--accent);
+  background: rgba(74,222,128,0.03);
+  box-shadow: 0 0 0 3px rgba(74,222,128,0.08), inset 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: '';
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid var(--text3); pointer-events: none;
+  transition: border-top-color var(--transition);
+}
+.select-wrap:hover::after { border-top-color: var(--text2); }
+select option { background: #1a1b1f; }
+
+.hint { font-size: 11px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+
+.field-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.field-row .field { margin-bottom: 0; }
+
+.btn-generate {
+  width: 100%; height: 50px; margin-top: 1.75rem;
+  background: var(--accent); color: #052e16;
+  font-family: var(--head); font-size: 15px; font-weight: 700;
+  letter-spacing: 0.02em;
+  border: none; border-radius: var(--r); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  position: relative; overflow: hidden;
+  transition: transform 0.15s, box-shadow var(--transition);
+}
+.btn-generate::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  opacity: 0; transition: opacity var(--transition);
+}
+.btn-generate::after {
+  content: '';
+  position: absolute; top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s, opacity 0.4s;
+  opacity: 0;
+}
+.btn-generate:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(74,222,128,0.3); }
+.btn-generate:hover::before { opacity: 1; }
+.btn-generate:active::after { width: 300px; height: 300px; opacity: 0; }
+.btn-generate:active { transform: scale(0.99); }
+
+.btn-icon {
+  font-size: 18px;
+  display: inline-block;
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.btn-generate:hover .btn-icon { transform: rotate(15deg) scale(1.15); }
+
+.output { display: none; }
+.output.show { display: block; animation: fadeUp 0.5s cubic-bezier(0.2,0,0,1) forwards; }
+
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.code-label {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  display: flex; align-items: center; gap: 8px;
+}
+.code-label::before {
+  content: ''; display: inline-block;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px var(--accent);
+  animation: blink 2s ease infinite;
+}
+
+.btn-copy {
+  display: flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 14px;
+  background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text2);
+  font-family: var(--mono); font-size: 11px; cursor: pointer;
+  transition: all var(--transition); letter-spacing: 0.05em;
+}
+.btn-copy:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.btn-copy.copied { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+.code-box {
+  background: #060708; border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.5rem;
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.75;
+  color: #b0bac6; white-space: pre;
+  overflow-x: auto; overflow-y: auto; max-height: 360px;
+}
+
+.status-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 1.25rem; padding: 10px 14px;
+  background: var(--accent-dim); border: 1px solid rgba(74,222,128,0.15);
+  border-radius: var(--r);
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  letter-spacing: 0.05em;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 0.4s, transform 0.4s;
+}
+.status-bar.visible { opacity: 1; transform: translateY(0); }
+.status-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+  animation: blink 1.5s ease infinite;
+}
+
+.steps { list-style: none; }
+.step {
+  display: flex; gap: 16px;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px; color: var(--text2);
+  line-height: 1.6; align-items: flex-start;
+  margin: 0 -8px;
+  border-radius: 8px;
+  transition: background var(--transition);
+}
+.step:last-child { border-bottom: none; }
+.step:hover { background: rgba(255,255,255,0.02); }
+.step-num {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--border2); color: var(--accent);
+  font-family: var(--mono); font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px; background: var(--accent-dim);
+  transition: all var(--transition);
+}
+.step:hover .step-num { border-color: var(--accent); box-shadow: 0 0 12px rgba(74,222,128,0.2); }
+.step a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(74,222,128,0.3); transition: border-color var(--transition); }
+.step a:hover { border-color: var(--accent); }
+.step strong { color: var(--text); font-weight: 500; }
+
+.footer {
+  text-align: center; font-size: 11px; color: var(--text3);
+  margin-top: 3rem; font-family: var(--mono); letter-spacing: 0.08em;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.footer::before, .footer::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border2));
+}
+.footer::after { transform: scaleX(-1); }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+@media (max-width: 500px) {
+  .container { padding: 2.5rem 1rem 4rem; }
+  .card { padding: 1.5rem; }
+  .field-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="container">
+  <div class="header">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Google Apps Script · Generator v2
+    </div>
+    <h1>Gmail PDF<br /><span class="hl">Auto-Save</span></h1>
+    <p class="subtitle">กรอกข้อมูลด้านล่าง แล้วคัดลอก code ไปวางใน Google Apps Script<br/>ฟรี · ไม่ต้องติดตั้งอะไร · ทำงาน 24/7</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Configuration</div>
+
+    <div class="field">
+      <label><span class="label-icon">📧</span> Sender Email</label>
+      <input type="email" id="senderEmail" placeholder="sender@example.com" />
+      <div class="hint">กรอง PDF เฉพาะ email จากที่อยู่นี้เท่านั้น</div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label><span class="label-icon">📁</span> ชื่อ Folder ใน Google Drive</label>
+        <input type="text" id="folderName" placeholder="PDF_Attachments" />
+        <div class="hint">สร้างโฟลเดอร์ให้อัตโนมัติถ้ายังไม่มี</div>
+      </div>
+      <div class="field">
+        <label><span class="label-icon">🔔</span> อีเมลสำหรับแจ้งเตือน (Notify)</label>
+        <input type="email" id="notifyEmail" placeholder="your@gmail.com" />
+        <div class="hint">รับการแจ้งเตือนสรุปไฟล์ที่บันทึกแล้ว</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label><span class="label-icon">⏰</span> ช่วงเวลาตรวจสอบ (Interval)</label>
+      <div class="select-wrap">
+        <select id="interval">
+          <option value="15min">ทุก 15 นาที</option>
+          <option value="30min">ทุก 30 นาที</option>
+          <option value="1hour" selected>ทุก 1 ชั่วโมง</option>
+          <option value="2hour">ทุก 2 ชั่วโมง</option>
+        </select>
+      </div>
+      <div class="hint">ตั้งค่าการทำงานอัตโนมัติในหน้า Trigger ของ Apps Script</div>
+    </div>
+
+    <button class="btn-generate" onclick="generate()">
+      <span class="btn-icon">⚡</span> Generate Code
+    </button>
+  </div>
+
+  <div class="output" id="output">
+    <div class="card">
+      <div class="code-header">
+        <span class="code-label">script.gs — ready to deploy</span>
+        <button class="btn-copy" id="copyBtn" onclick="copyCode()">⧉ Copy code</button>
+      </div>
+      <div class="code-box" id="codeBox"></div>
+      <div class="status-bar" id="statusBar">
+        <span class="status-dot"></span>
+        <span id="statusText">code generated — ready to paste in Apps Script</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Setup Guide (ระบบคลาวด์ Properties)</div>
+      <ol class="steps">
+        <li class="step"><span class="step-num">1</span><span>เปิด <a href="https://script.google.com" target="_blank">script.google.com</a> → คลิก <strong>New Project</strong></span></li>
+        <li class="step"><span class="step-num">2</span><span>ลบ code เดิมทั้งหมด → <strong>Paste</strong> code ที่คัดลอก → กด <strong>Ctrl+S</strong> เพื่อบันทึก</span></li>
+        <li class="step"><span class="step-num">3</span><span>เลือกฟังก์ชัน <strong>savePDFFromGmail</strong> → กด <strong>▶ Run</strong> เพื่อทดสอบและอนุญาตสิทธิ์สคริปต์ (Allow Permission)</span></li>
+        <li class="step"><span class="step-num">4</span><span>ระบบจะเริ่มบันทึกประวัติแบบถาวรใน <strong>Script Properties</strong> ทันที โดยไม่สร้างข้อมูลซ้ำ</span></li>
+        <li class="step"><span class="step-num">5</span><span>ตั้ง <strong>Trigger</strong> (ไอคอนนาฬิกาด้านซ้าย) → เลือก <strong>savePDFFromGmail</strong> → Time-driven → <span id="intervalLabel">Every hour</span></span></li>
+        <li class="step"><span class="step-num">6</span><span>เสร็จสิ้น! 🎉 <strong>แม้คุณจะย้าย/ลบไฟล์ออกจาก Google Drive ทุกสิ้นเดือน</strong> ระบบก็จำและไม่โหลดมาซ้ำแน่นอน!</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="footer">built with Google Apps Script · runs 24/7 · free forever</div>
+</div>
+
+<script>
+const intervalMap = {
+  '15min': 'Every 15 minutes',
+  '30min': 'Every 30 minutes',
+  '1hour': 'Every hour',
+  '2hour': 'Every 2 hours'
+};
+
+function generate() {
+  const sender   = document.getElementById('senderEmail').value.trim() || 'sender@example.com';
+  const folder   = document.getElementById('folderName').value.trim()  || 'PDF_Attachments';
+  const notify   = document.getElementById('notifyEmail').value.trim() || 'your@gmail.com';
+  const interval = document.getElementById('interval').value;
+
+  document.getElementById('intervalLabel').textContent = intervalMap[interval];
+
+  const lines = [
+    '// ============================================================',
+    '//  ตั้งค่า — แก้ไขแล้ว ไม่ต้องแก้อีก',
+    '// ============================================================',
+    'const SENDER_EMAIL = "' + sender + '";',
+    'const FOLDER_NAME  = "' + folder + '";',
+    'const NOTIFY_EMAIL = "' + notify + '";',
+    '// Trigger ที่แนะนำ: ' + intervalMap[interval],
+    '// ============================================================',
+    '',
+    '// ใช้คำนำหน้าคีย์เพื่อป้องกันการชนกับค่าอื่นๆ ในระบบ Properties',
+    'const HISTORY_PREFIX = "PDF_SAVED_";',
+    '',
+    'function savePDFFromGmail() {',
+    '  const driveFolder = getOrCreateFolder(FOLDER_NAME);',
+    '  const props       = PropertiesService.getScriptProperties();',
+    '',
+    '  const query   = "from:" + SENDER_EMAIL + " has:attachment";',
+    '  const threads = GmailApp.search(query);',
+    '',
+    '  if (threads.length === 0) {',
+    '    Logger.log("ไม่พบ email จาก " + SENDER_EMAIL);',
+    '    return;',
+    '  }',
+    '',
+    '  const savedFiles   = [];',
+    '  const skippedFiles = [];',
+    '',
+    '  threads.forEach(function(thread) {',
+    '    thread.getMessages().forEach(function(message) {',
+    '      const msgId   = message.getId();',
+    '      const dateStr = Utilities.formatDate(',
+    '        message.getDate(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm"',
+    '      );',
+    '      message.getAttachments().forEach(function(att) {',
+    '        const fileName = att.getName();',
+    '        if (!fileName.toLowerCase().endsWith(".pdf")) return;',
+    '',
+    '        // 🔑 สร้างคีย์ประวัติแบบไม่ซ้ำจาก ID เมล + ชื่อไฟล์',
+    '        const historyKey = HISTORY_PREFIX + msgId + "_" + fileName;',
+    '',
+    '        // 🔍 ตรวจสอบว่าเคยเซฟหรือยังใน Script Properties',
+    '        if (props.getProperty(historyKey)) {',
+    '          skippedFiles.push(fileName);',
+    '          Logger.log("⚠️ ข้าม (เคยบันทึกแล้ว): " + fileName);',
+    '        } else {',
+    '          driveFolder.createFile(att);',
+    '          ',
+    '          // 💾 บันทึกคีย์ลง Script Properties เพื่อจำว่าเคยบันทึกแล้ว',
+    '          props.setProperty(historyKey, dateStr); ',
+    '          ',
+    '          savedFiles.push({ name: fileName, date: dateStr });',
+    '          Logger.log("✅ Saved: " + fileName);',
+    '        }',
+    '      });',
+    '    });',
+    '  });',
+    '',
+    '  if (savedFiles.length > 0) sendNotificationEmail(savedFiles, skippedFiles);',
+    '  Logger.log("เสร็จ — บันทึก " + savedFiles.length + " | ข้าม " + skippedFiles.length);',
+    '}',
+    '',
+    '// ⚠️ ฟังก์ชันสำหรับล้างประวัติการบันทึกทั้งหมด (ใช้เฉพาะตอนต้องการเริ่มใหม่และเซฟไฟล์ซ้ำทั้งหมด)',
+    'function clearHistory() {',
+    '  const props = PropertiesService.getScriptProperties();',
+    '  const keys  = props.getKeys();',
+    '  let count = 0;',
+    '  keys.forEach(function(key) {',
+    '    if (key.indexOf(HISTORY_PREFIX) === 0) {',
+    '      props.deleteProperty(key);',
+    '      count++;',
+    '    }',
+    '  });',
+    '  Logger.log("⚠️ ลบประวัติสำเร็จ " + count + " รายการ");',
+    '}',
+    '',
+    'function sendNotificationEmail(savedFiles, skippedFiles) {',
+    '  const now      = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm");',
+    '  const driveUrl = "https://drive.google.com/drive/search?q=" + encodeURIComponent(FOLDER_NAME);',
+    '  const rows = savedFiles.map(function(f) {',
+    '    return "<tr>" +',
+    '      "<td style=\'padding:6px 12px;border-bottom:1px solid #eee;\'>" + f.name + "</td>" +',
+    '      "<td style=\'padding:6px 12px;border-bottom:1px solid #eee;color:#555;\'>" + f.date + "</td>" +',
+    '    "</tr>";',
+    '  }).join("");',
+    '  const skippedHtml = skippedFiles.length > 0',
+    '    ? "<p style=\'color:#888;font-size:13px;margin-top:16px;\'>ข้าม: " + skippedFiles.length + " ไฟล์</p>"',
+    '    : "";',
+    '  const html =',
+    '    "<div style=\'font-family:Arial,sans-serif;max-width:600px;margin:auto;\'>" +',
+    '    "<h2 style=\'color:#4ade80;\'>✅ บันทึก PDF สำเร็จ</h2>" +',
+    '    "<p>เวลา: <strong>" + now + "</strong></p>" +',
+    '    "<p>บันทึกแล้ว <strong>" + savedFiles.length + " ไฟล์</strong> ลงใน <strong>" + FOLDER_NAME + "</strong></p>" +',
+    '    "<table style=\'border-collapse:collapse;width:100%;margin-top:12px;\'>" +',
+    '    "<thead><tr style=\'background:#4ade80;color:#052e16;\'>" +',
+    '    "<th style=\'padding:8px 12px;text-align:left;\'>ชื่อไฟล์</th>" +',
+    '    "<th style=\'padding:8px 12px;text-align:left;\'>วันที่รับ</th>" +',
+    '    "</tr></thead><tbody>" + rows + "</tbody></table>" +',
+    '    skippedHtml +',
+    '    "<p style=\'margin-top:20px;\'>" +',
+    '    "<a href=\'" + driveUrl + "\' style=\'background:#4ade80;color:#052e16;padding:10px 20px;" +',
+    '    "border-radius:8px;text-decoration:none;font-weight:600;\'>เปิด Google Drive →</a>" +',
+    '    "</p></div>";',
+    '',
+    '  GmailApp.sendEmail(',
+    '    NOTIFY_EMAIL,',
+    '    "[PDF Auto-Save] บันทึกสำเร็จ " + savedFiles.length + " ไฟล์ — " + now,',
+    '    "บันทึก " + savedFiles.length + " ไฟล์ลงใน " + FOLDER_NAME,',
+    '    { htmlBody: html }',
+    '  );',
+    '}',
+    '',
+    'function getOrCreateFolder(name) {',
+    '  const f = DriveApp.getFoldersByName(name);',
+    '  return f.hasNext() ? f.next() : DriveApp.createFolder(name);',
+    '}'
+  ];
+
+  document.getElementById('codeBox').textContent = lines.join('\n');
+
+  const out = document.getElementById('output');
+  out.classList.add('show');
+
+  setTimeout(() => {
+    const sb = document.getElementById('statusBar');
+    sb.classList.add('visible');
+    document.getElementById('statusText').textContent =
+      'code generated successfully — ready to paste';
+  }, 400);
+
+  setTimeout(() => out.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+
+  const btn = document.querySelector('.btn-generate');
+  btn.style.background = '#22c55e';
+  setTimeout(() => { btn.style.background = ''; }, 280);
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(document.getElementById('codeBox').textContent).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    btn.textContent = '✓ Copied!';
+    document.getElementById('statusText').textContent =
+      '✓ copied to clipboard — go paste in Apps Script';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = '⧉ Copy code';
+      document.getElementById('statusText').textContent =
+        'code generated — ready to paste in Apps Script';
+    }, 2500);
+  });
+}
+</script>
+</body>
+</html>
