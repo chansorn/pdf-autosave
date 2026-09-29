@@ -2,395 +2,95 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Gmail PDF Auto-Save</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gmail PDF & ZIP Auto-Save</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <style>
 :root {
-  --bg: #080909;
-  --surface: #111214;
-  --surface2: #18191d;
-  --surface3: #1e2028;
-  --border: rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.12);
-  --accent: #4ade80;
-  --accent2: #22c55e;
-  --accent-glow: rgba(74,222,128,0.15);
-  --accent-dim: rgba(74,222,128,0.08);
-  --text: #f0f2f5;
-  --text2: #7d8491;
-  --text3: #3d4149;
-  --mono: 'DM Mono', monospace;
-  --head: 'Syne', 'Noto Sans Thai', sans-serif;
-  --body: 'Noto Sans Thai', 'Syne', sans-serif;
-  --r: 12px;
-  --r-lg: 20px;
-  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --bg:#080909; --surface:#111214; --surface2:#18191d; --surface3:#1e2028;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.12);
+  --accent:#4ade80; --accent2:#22c55e; --accent-dim:rgba(74,222,128,0.08);
+  --text:#f0f2f5; --text2:#7d8491; --text3:#3d4149;
+  --mono:'DM Mono', ui-monospace, monospace;
+  --head:'Syne','Noto Sans Thai',system-ui,sans-serif;
+  --body:'Noto Sans Thai','Syne',system-ui,sans-serif;
+  --r:12px; --r-lg:20px; --transition:0.3s cubic-bezier(0.4,0,0.2,1);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--body);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-.grid-bg {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: gridDrift 40s linear infinite;
-}
-@keyframes gridDrift {
-  0% { background-position: 0 0, 0 0; }
-  100% { background-position: 60px 60px, 60px 60px; }
-}
-
-.orb {
-  position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
-  filter: blur(80px); opacity: 0;
-  animation: orbIn 1.2s ease forwards;
-}
-.orb-1 {
-  width: 500px; height: 500px;
-  background: radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 70%);
-  top: -120px; left: 50%; transform: translateX(-50%);
-  animation-delay: 0.1s;
-}
-.orb-2 {
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(34,197,94,0.06) 0%, transparent 70%);
-  bottom: 200px; right: -80px;
-  animation-delay: 0.3s;
-}
-.orb-3 {
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(74,222,128,0.05) 0%, transparent 70%);
-  top: 60%; left: -60px;
-  animation-delay: 0.5s;
-}
-@keyframes orbIn { to { opacity: 1; } }
-
-body::after {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg, transparent, transparent 2px,
-    rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px
-  );
-}
-
-.container {
-  position: relative; z-index: 1;
-  max-width: 640px; margin: 0 auto;
-  padding: 4rem 1.5rem 5rem;
-}
-
-.header {
-  margin-bottom: 3rem;
-  opacity: 0; transform: translateY(24px);
-  animation: fadeUp 0.7s cubic-bezier(0.2,0,0,1) 0.2s forwards;
-}
-
-.badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--accent-dim);
-  border: 1px solid rgba(74,222,128,0.2);
-  color: var(--accent);
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 5px 12px; border-radius: 999px;
-  margin-bottom: 20px;
-  position: relative; overflow: hidden;
-}
-.badge::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(74,222,128,0.12), transparent);
-  transform: translateX(-100%);
-  animation: shimmer 3s ease infinite 1.2s;
-}
-@keyframes shimmer { to { transform: translateX(100%); } }
-
-.badge-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-  animation: blink 2s ease infinite;
-}
-@keyframes blink {
-  0%,100% { opacity: 1; box-shadow: 0 0 8px var(--accent); }
-  50% { opacity: 0.35; box-shadow: none; }
-}
-
-h1 {
-  font-family: var(--head);
-  font-size: clamp(32px, 6vw, 48px);
-  font-weight: 800; line-height: 1.1;
-  margin-bottom: 14px; letter-spacing: -0.02em;
-}
-h1 .hl {
-  color: var(--accent); position: relative; display: inline-block;
-}
-h1 .hl::after {
-  content: '';
-  position: absolute; bottom: -2px; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--accent), transparent);
-  transform: scaleX(0); transform-origin: left;
-  animation: lineIn 0.6s ease 0.9s forwards;
-}
-@keyframes lineIn { to { transform: scaleX(1); } }
-
-.subtitle {
-  font-size: 15px; color: var(--text2);
-  line-height: 1.75; max-width: 420px; font-weight: 300;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 2rem;
-  margin-bottom: 1rem;
-  position: relative; overflow: hidden;
-  opacity: 0; transform: translateY(20px);
-  animation: fadeUp 0.6s cubic-bezier(0.2,0,0,1) forwards;
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-.card:hover { border-color: var(--border2); box-shadow: 0 0 40px rgba(0,0,0,0.4); }
-.card::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(74,222,128,0.35), transparent);
-  opacity: 0; transition: opacity var(--transition);
-}
-.card:hover::before { opacity: 1; }
-.card:nth-child(1) { animation-delay: 0.35s; }
-.card:nth-child(2) { animation-delay: 0.45s; }
-.card:nth-child(3) { animation-delay: 0.55s; }
-@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
-
-.card-title {
-  font-family: var(--mono);
-  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--text3); margin-bottom: 1.5rem;
-  display: flex; align-items: center; gap: 8px;
-}
-.card-title::before {
-  content: ''; display: inline-block;
-  width: 16px; height: 1px; background: var(--text3);
-}
-
-.field { margin-bottom: 1.25rem; }
-.field:last-of-type { margin-bottom: 0; }
-
-label {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px; font-weight: 500; color: var(--text2);
-  margin-bottom: 8px; letter-spacing: 0.02em;
-}
-.label-icon {
-  width: 20px; height: 20px;
-  background: var(--surface3); border: 1px solid var(--border);
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px;
-}
-
-input, select {
-  width: 100%; height: 44px; padding: 0 14px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--r); color: var(--text);
-  font-family: var(--body); font-size: 14px;
-  outline: none; appearance: none;
-  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
-}
-input::placeholder { color: var(--text3); }
-input:hover, select:hover { border-color: var(--border2); }
-input:focus, select:focus {
-  border-color: var(--accent);
-  background: rgba(74,222,128,0.03);
-  box-shadow: 0 0 0 3px rgba(74,222,128,0.08), inset 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.select-wrap { position: relative; }
-.select-wrap::after {
-  content: '';
-  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-  width: 0; height: 0;
-  border-left: 4px solid transparent; border-right: 4px solid transparent;
-  border-top: 5px solid var(--text3); pointer-events: none;
-  transition: border-top-color var(--transition);
-}
-.select-wrap:hover::after { border-top-color: var(--text2); }
-select option { background: #1a1b1f; }
-
-.hint { font-size: 11px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
-
-.field-row {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-.field-row .field { margin-bottom: 0; }
-
-.btn-generate {
-  width: 100%; height: 50px; margin-top: 1.75rem;
-  background: var(--accent); color: #052e16;
-  font-family: var(--head); font-size: 15px; font-weight: 700;
-  letter-spacing: 0.02em;
-  border: none; border-radius: var(--r); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  position: relative; overflow: hidden;
-  transition: transform 0.15s, box-shadow var(--transition);
-}
-.btn-generate::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
-  opacity: 0; transition: opacity var(--transition);
-}
-.btn-generate::after {
-  content: '';
-  position: absolute; top: 50%; left: 50%;
-  width: 0; height: 0;
-  background: rgba(255,255,255,0.2);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: width 0.4s, height 0.4s, opacity 0.4s;
-  opacity: 0;
-}
-.btn-generate:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(74,222,128,0.3); }
-.btn-generate:hover::before { opacity: 1; }
-.btn-generate:active::after { width: 300px; height: 300px; opacity: 0; }
-.btn-generate:active { transform: scale(0.99); }
-
-.btn-icon {
-  font-size: 18px;
-  display: inline-block;
-  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-}
-.btn-generate:hover .btn-icon { transform: rotate(15deg) scale(1.15); }
-
-.output { display: none; }
-.output.show { display: block; animation: fadeUp 0.5s cubic-bezier(0.2,0,0,1) forwards; }
-
-.code-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
-}
-.code-label {
-  font-family: var(--mono); font-size: 11px; color: var(--text3);
-  display: flex; align-items: center; gap: 8px;
-}
-.code-label::before {
-  content: ''; display: inline-block;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent); box-shadow: 0 0 6px var(--accent);
-  animation: blink 2s ease infinite;
-}
-
-.btn-copy {
-  display: flex; align-items: center; gap: 7px;
-  height: 34px; padding: 0 14px;
-  background: var(--surface3); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text2);
-  font-family: var(--mono); font-size: 11px; cursor: pointer;
-  transition: all var(--transition); letter-spacing: 0.05em;
-}
-.btn-copy:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-.btn-copy.copied { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-
-.code-box {
-  background: #060708; border: 1px solid var(--border);
-  border-radius: var(--r); padding: 1.5rem;
-  font-family: var(--mono); font-size: 11.5px; line-height: 1.75;
-  color: #b0bac6; white-space: pre;
-  overflow-x: auto; overflow-y: auto; max-height: 360px;
-}
-
-.status-bar {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 1.25rem; padding: 10px 14px;
-  background: var(--accent-dim); border: 1px solid rgba(74,222,128,0.15);
-  border-radius: var(--r);
-  font-family: var(--mono); font-size: 11px; color: var(--accent);
-  letter-spacing: 0.05em;
-  opacity: 0; transform: translateY(8px);
-  transition: opacity 0.4s, transform 0.4s;
-}
-.status-bar.visible { opacity: 1; transform: translateY(0); }
-.status-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--accent); flex-shrink: 0;
-  animation: blink 1.5s ease infinite;
-}
-
-.steps { list-style: none; }
-.step {
-  display: flex; gap: 16px;
-  padding: 14px 8px;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px; color: var(--text2);
-  line-height: 1.6; align-items: flex-start;
-  margin: 0 -8px;
-  border-radius: 8px;
-  transition: background var(--transition);
-}
-.step:last-child { border-bottom: none; }
-.step:hover { background: rgba(255,255,255,0.02); }
-.step-num {
-  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
-  border: 1px solid var(--border2); color: var(--accent);
-  font-family: var(--mono); font-size: 11px;
-  display: flex; align-items: center; justify-content: center;
-  margin-top: 1px; background: var(--accent-dim);
-  transition: all var(--transition);
-}
-.step:hover .step-num { border-color: var(--accent); box-shadow: 0 0 12px rgba(74,222,128,0.2); }
-.step a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(74,222,128,0.3); transition: border-color var(--transition); }
-.step a:hover { border-color: var(--accent); }
-.step strong { color: var(--text); font-weight: 500; }
-
-.footer {
-  text-align: center; font-size: 11px; color: var(--text3);
-  margin-top: 3rem; font-family: var(--mono); letter-spacing: 0.08em;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-}
-.footer::before, .footer::after {
-  content: ''; flex: 1; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border2));
-}
-.footer::after { transform: scaleX(-1); }
-
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-@media (max-width: 500px) {
-  .container { padding: 2.5rem 1rem 4rem; }
-  .card { padding: 1.5rem; }
-  .field-row { grid-template-columns: 1fr; }
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100%;overflow-x:hidden;}
+.grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+  background-size:60px 60px;animation:gridDrift 40s linear infinite;}
+@keyframes gridDrift{to{background-position:60px 60px,60px 60px;}}
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(80px);opacity:0;animation:orbIn 1.2s ease forwards;}
+.orb-1{width:500px;height:500px;background:radial-gradient(circle,rgba(74,222,128,0.12) 0%,transparent 70%);top:-120px;left:50%;transform:translateX(-50%);}
+.orb-2{width:300px;height:300px;background:radial-gradient(circle,rgba(34,197,94,0.06) 0%,transparent 70%);bottom:200px;right:-80px;animation-delay:.3s;}
+@keyframes orbIn{to{opacity:1;}}
+.container{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:4rem 1.5rem 5rem;}
+.header{margin-bottom:3rem;opacity:0;transform:translateY(24px);animation:fadeUp .7s cubic-bezier(.2,0,0,1) .2s forwards;}
+.badge{display:inline-flex;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid rgba(74,222,128,0.2);color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:5px 12px;border-radius:999px;margin-bottom:20px;}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2s ease infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
+h1{font-family:var(--head);font-size:clamp(32px,6vw,48px);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.02em;}
+h1 .hl{color:var(--accent);}
+.subtitle{font-size:15px;color:var(--text2);line-height:1.75;max-width:440px;font-weight:300;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:2rem;margin-bottom:1rem;opacity:0;transform:translateY(20px);animation:fadeUp .6s cubic-bezier(.2,0,0,1) .35s forwards;}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0);}}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:1.5rem;}
+.field{margin-bottom:1.25rem;}
+.lbl{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;}
+.label-icon{width:20px;height:20px;background:var(--surface3);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;}
+input[type=email],input[type=text],select{width:100%;height:44px;padding:0 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--body);font-size:14px;outline:none;appearance:none;transition:border-color var(--transition),box-shadow var(--transition);}
+textarea{width:100%;min-height:132px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.7;outline:none;resize:vertical;transition:border-color var(--transition),box-shadow var(--transition);}
+input::placeholder,textarea::placeholder{color:var(--text3);}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(74,222,128,0.08);}
+select:disabled{opacity:.4;cursor:not-allowed;}
+.select-wrap{position:relative;}
+.select-wrap::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--text2);pointer-events:none;}
+select option{background:#1a1b1f;}
+.hint{font-size:11px;color:var(--text2);opacity:.7;margin-top:6px;line-height:1.5;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;}
+.field-row .field{margin-bottom:0;}
+/* file type chips */
+.chips{display:flex;gap:10px;flex-wrap:wrap;}
+.chip{position:relative;cursor:pointer;}
+.chip input{position:absolute;opacity:0;width:0;height:0;}
+.chip span{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);font-size:13px;font-weight:500;transition:all var(--transition);}
+.chip span::before{content:'';width:14px;height:14px;border-radius:4px;border:1px solid var(--border2);background:var(--surface3);transition:all var(--transition);}
+.chip input:checked + span{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.chip input:checked + span::before{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 3px var(--surface2);}
+.chip input:focus-visible + span{box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
+.error{color:#f87171;font-size:12px;margin-top:8px;display:none;}
+.btn-generate{width:100%;height:50px;margin-top:1.75rem;background:var(--accent);color:#052e16;font-family:var(--head);font-size:15px;font-weight:700;border:none;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .15s,box-shadow var(--transition);}
+.btn-generate:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(74,222,128,0.3);}
+.output{display:none;}
+.output.show{display:block;}
+.code-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;}
+.code-label{font-family:var(--mono);font-size:11px;color:var(--text2);}
+.btn-copy{height:34px;padding:0 14px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all var(--transition);}
+.btn-copy:hover,.btn-copy.copied{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.code-box{background:#060708;border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;font-family:var(--mono);font-size:11.5px;line-height:1.75;color:#b0bac6;white-space:pre;overflow:auto;max-height:360px;}
+.status-bar{display:flex;align-items:center;gap:8px;margin-top:1.25rem;padding:10px 14px;background:var(--accent-dim);border:1px solid rgba(74,222,128,0.15);border-radius:var(--r);font-family:var(--mono);font-size:11px;color:var(--accent);}
+.steps{list-style:none;}
+.step{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--text2);line-height:1.6;align-items:flex-start;}
+.step:last-child{border-bottom:none;}
+.step-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);color:var(--accent);font-family:var(--mono);font-size:11px;display:flex;align-items:center;justify-content:center;background:var(--accent-dim);}
+.step a{color:var(--accent);}
+.step strong{color:var(--text);font-weight:500;}
+.note{font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-top:1rem;line-height:1.7;}
+.footer{text-align:center;font-size:11px;color:var(--text3);margin-top:3rem;font-family:var(--mono);}
+@media (max-width:500px){.container{padding:2.5rem 1rem 4rem;}.card{padding:1.5rem;}.field-row{grid-template-columns:1fr;}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;}.header,.card,.orb{opacity:1;transform:none;}}
 </style>
 </head>
 <body>
-<div class="grid-bg"></div>
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
-<div class="orb orb-3"></div>
-
+<div class="grid-bg"></div><div class="orb orb-1"></div><div class="orb orb-2"></div>
 <div class="container">
   <div class="header">
-    <div class="badge">
-      <span class="badge-dot"></span>
-      Google Apps Script · Generator v2
-    </div>
-    <h1>Gmail PDF<br /><span class="hl">Auto-Save</span></h1>
+    <div class="badge"><span class="badge-dot"></span>Google Apps Script · Generator v4</div>
+    <h1>Gmail PDF & ZIP<br /><span class="hl">Auto-Save</span></h1>
     <p class="subtitle">กรอกข้อมูลด้านล่าง แล้วคัดลอก code ไปวางใน Google Apps Script<br/>ฟรี · ไม่ต้องติดตั้งอะไร · ทำงาน 24/7</p>
   </div>
 
@@ -398,26 +98,60 @@ select option { background: #1a1b1f; }
     <div class="card-title">Configuration</div>
 
     <div class="field">
-      <label><span class="label-icon">📧</span> Sender Email</label>
+      <label class="lbl" for="senderEmail"><span class="label-icon">📧</span> Sender Email</label>
       <input type="email" id="senderEmail" placeholder="sender@example.com" />
-      <div class="hint">กรอง PDF เฉพาะ email จากที่อยู่นี้เท่านั้น</div>
+      <div class="hint">กรองไฟล์แนบเฉพาะ email จากที่อยู่นี้เท่านั้น</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="subjectFilter"><span class="label-icon">🔎</span> กรองด้วย Subject (ไม่บังคับ)</label>
+      <input type="text" id="subjectFilter" placeholder="เช่น Statement หรือ ใบแจ้งยอดบัญชี" />
+      <div class="hint">บันทึกเฉพาะ email ที่ subject มีคำหรือประโยคนี้อยู่ (ไม่สนตัวพิมพ์เล็ก/ใหญ่) · เว้นว่าง = ไม่กรอง subject</div>
+    </div>
+
+    <div class="field">
+      <div class="lbl"><span class="label-icon">📎</span> ประเภทไฟล์ที่ต้องการบันทึก</div>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="typePdf" checked onchange="syncZip()"><span>📄 PDF</span></label>
+        <label class="chip"><input type="checkbox" id="typeZip" checked onchange="syncZip()"><span>🗜️ ZIP</span></label>
+      </div>
+      <div class="error" id="typeError">เลือกอย่างน้อย 1 ประเภท</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="zipMode"><span class="label-icon">🗜️</span> วิธีจัดการไฟล์ ZIP</label>
+      <div class="select-wrap">
+        <select id="zipMode">
+          <option value="keep">เก็บเป็นไฟล์ .zip ตามเดิม</option>
+          <option value="extract">แตกไฟล์ ZIP แล้วเก็บไฟล์ทั้งหมดข้างใน</option>
+          <option value="extractPdf" selected>แตกไฟล์ ZIP แล้วเก็บเฉพาะ PDF ข้างใน</option>
+        </select>
+      </div>
+      <div class="hint">ถ้าแตกไฟล์ไม่สำเร็จ (เช่น ZIP ติดรหัสผ่าน) ระบบจะเก็บเป็น .zip แทนอัตโนมัติ</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl" for="pdfPasswords"><span class="label-icon">🔐</span> ปลดล็อค PDF อัตโนมัติ</label>
+      <textarea id="pdfPasswords" spellcheck="false" placeholder="123456789012345  PASSWORD: 11111&#10;987654321098765  PASSWORD: 22222"></textarea>
+      <div class="hint">1 บรรทัด = เลขที่อยู่ในชื่อไฟล์ + password · PDF ที่ชื่อไฟล์มีเลขนี้จะถูกปลดรหัสก่อนบันทึกลง Drive · เว้นว่างถ้าไม่ต้องการ</div>
+      <div class="error" id="pwError"></div>
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label><span class="label-icon">📁</span> ชื่อ Folder ใน Google Drive</label>
+        <label class="lbl" for="folderName"><span class="label-icon">📁</span> ชื่อ Folder ใน Google Drive</label>
         <input type="text" id="folderName" placeholder="PDF_Attachments" />
         <div class="hint">สร้างโฟลเดอร์ให้อัตโนมัติถ้ายังไม่มี</div>
       </div>
       <div class="field">
-        <label><span class="label-icon">🔔</span> อีเมลสำหรับแจ้งเตือน (Notify)</label>
+        <label class="lbl" for="notifyEmail"><span class="label-icon">🔔</span> อีเมลแจ้งเตือน</label>
         <input type="email" id="notifyEmail" placeholder="your@gmail.com" />
-        <div class="hint">รับการแจ้งเตือนสรุปไฟล์ที่บันทึกแล้ว</div>
+        <div class="hint">รับสรุปไฟล์ที่บันทึกแล้ว</div>
       </div>
     </div>
 
     <div class="field">
-      <label><span class="label-icon">⏰</span> ช่วงเวลาตรวจสอบ (Interval)</label>
+      <label class="lbl" for="interval"><span class="label-icon">⏰</span> ช่วงเวลาตรวจสอบ</label>
       <div class="select-wrap">
         <select id="interval">
           <option value="15min">ทุก 15 นาที</option>
@@ -426,37 +160,32 @@ select option { background: #1a1b1f; }
           <option value="2hour">ทุก 2 ชั่วโมง</option>
         </select>
       </div>
-      <div class="hint">ตั้งค่าการทำงานอัตโนมัติในหน้า Trigger ของ Apps Script</div>
     </div>
 
-    <button class="btn-generate" onclick="generate()">
-      <span class="btn-icon">⚡</span> Generate Code
-    </button>
+    <button class="btn-generate" onclick="generate()">⚡ Generate Code</button>
   </div>
 
   <div class="output" id="output">
     <div class="card">
       <div class="code-header">
-        <span class="code-label">script.gs — ready to deploy</span>
+        <span class="code-label">script.gs</span>
         <button class="btn-copy" id="copyBtn" onclick="copyCode()">⧉ Copy code</button>
       </div>
       <div class="code-box" id="codeBox"></div>
-      <div class="status-bar" id="statusBar">
-        <span class="status-dot"></span>
-        <span id="statusText">code generated — ready to paste in Apps Script</span>
-      </div>
+      <div class="status-bar"><span id="statusText">สร้าง code แล้ว — พร้อมวางใน Apps Script</span></div>
     </div>
 
     <div class="card">
-      <div class="card-title">Setup Guide (ระบบคลาวด์ Properties)</div>
+      <div class="card-title">Setup Guide</div>
       <ol class="steps">
-        <li class="step"><span class="step-num">1</span><span>เปิด <a href="https://script.google.com" target="_blank">script.google.com</a> → คลิก <strong>New Project</strong></span></li>
-        <li class="step"><span class="step-num">2</span><span>ลบ code เดิมทั้งหมด → <strong>Paste</strong> code ที่คัดลอก → กด <strong>Ctrl+S</strong> เพื่อบันทึก</span></li>
-        <li class="step"><span class="step-num">3</span><span>เลือกฟังก์ชัน <strong>savePDFFromGmail</strong> → กด <strong>▶ Run</strong> เพื่อทดสอบและอนุญาตสิทธิ์สคริปต์ (Allow Permission)</span></li>
-        <li class="step"><span class="step-num">4</span><span>ระบบจะเริ่มบันทึกประวัติแบบถาวรใน <strong>Script Properties</strong> ทันที โดยไม่สร้างข้อมูลซ้ำ</span></li>
-        <li class="step"><span class="step-num">5</span><span>ตั้ง <strong>Trigger</strong> (ไอคอนนาฬิกาด้านซ้าย) → เลือก <strong>savePDFFromGmail</strong> → Time-driven → <span id="intervalLabel">Every hour</span></span></li>
-        <li class="step"><span class="step-num">6</span><span>เสร็จสิ้น! 🎉 <strong>แม้คุณจะย้าย/ลบไฟล์ออกจาก Google Drive ทุกสิ้นเดือน</strong> ระบบก็จำและไม่โหลดมาซ้ำแน่นอน!</span></li>
+        <li class="step"><span class="step-num">1</span><span>เปิด <a href="https://script.google.com" target="_blank" rel="noopener">script.google.com</a> → <strong>New Project</strong> (หรือเปิดโปรเจกต์เดิม)</span></li>
+        <li class="step"><span class="step-num">2</span><span>ลบ code เดิมทั้งหมด → <strong>Paste</strong> → <strong>Ctrl+S</strong></span></li>
+        <li class="step"><span class="step-num">3</span><span>เลือก <strong>savePDFFromGmail</strong> → <strong>▶ Run</strong> เพื่ออนุญาตสิทธิ์ (มีสิทธิ์ใหม่ <strong>"เชื่อมต่อบริการภายนอก"</strong> ไว้โหลดตัวปลดล็อค PDF)</span></li>
+        <li class="step"><span class="step-num">4</span><span>ตั้ง <strong>Trigger</strong> → <strong>savePDFFromGmail</strong> → Time-driven → <span id="intervalLabel">Every hour</span></span></li>
+        <li class="step"><span class="step-num">5</span><span>มี PDF ติดรหัสอยู่ใน Drive แล้ว? เลือก <strong>unlockExistingFiles</strong> → <strong>▶ Run</strong> ครั้งเดียว — ไฟล์ติดรหัสจะถูกแทนด้วยไฟล์ปลดล็อค (ไฟล์เดิมไปอยู่ในถังขยะ กู้คืนได้ 30 วัน)</span></li>
+        <li class="step"><span class="step-num">6</span><span>เสร็จสิ้น 🎉 ระบบจำไฟล์ที่เคยบันทึกไว้ใน <strong>Script Properties</strong> แม้จะลบไฟล์ออกจาก Drive ก็ไม่โหลดซ้ำ</span></li>
       </ol>
+      <div class="note">💡 ถ้าอัปเดตจากเวอร์ชันเดิม: ชื่อฟังก์ชันและประวัติยังเหมือนเดิม Trigger เดิมใช้ต่อได้ ไฟล์ที่เคยเซฟแล้วจะไม่ถูกโหลดซ้ำ — แต่ต้องทำขั้นตอนที่ 3 หนึ่งครั้งเพื่ออนุญาตสิทธิ์ใหม่<br/>🔒 code ที่ได้มี password อยู่ข้างใน อย่าแชร์ให้คนอื่น</div>
     </div>
   </div>
 
@@ -464,173 +193,406 @@ select option { background: #1a1b1f; }
 </div>
 
 <script>
-const intervalMap = {
-  '15min': 'Every 15 minutes',
-  '30min': 'Every 30 minutes',
-  '1hour': 'Every hour',
-  '2hour': 'Every 2 hours'
-};
+const intervalMap = {'15min':'Every 15 minutes','30min':'Every 30 minutes','1hour':'Every hour','2hour':'Every 2 hours'};
 
-function generate() {
+// แต่ละบรรทัด: "เลข PASSWORD: รหัส" หรือ "เลข รหัส"
+function parsePasswords(text){
+  const map = {}, bad = [];
+  text.split(/\r?\n/).forEach(function(line, i){
+    const t = line.trim();
+    if (!t) return;
+    const m = t.match(/^(\S+?)[\s,:=]+(?:password\s*[:=]?\s*)?(\S+)$/i);
+    if (!m) { bad.push(i + 1); return; }
+    map[m[1]] = m[2];
+  });
+  return { map: map, bad: bad };
+}
+
+function syncZip(){
+  document.getElementById('zipMode').disabled = !document.getElementById('typeZip').checked;
+  document.getElementById('typeError').style.display = 'none';
+}
+
+function generate(){
   const sender   = document.getElementById('senderEmail').value.trim() || 'sender@example.com';
+  const subject  = document.getElementById('subjectFilter').value.trim();
   const folder   = document.getElementById('folderName').value.trim()  || 'PDF_Attachments';
   const notify   = document.getElementById('notifyEmail').value.trim() || 'your@gmail.com';
   const interval = document.getElementById('interval').value;
+  const savePdf  = document.getElementById('typePdf').checked;
+  const saveZip  = document.getElementById('typeZip').checked;
+  const zipMode  = document.getElementById('zipMode').value;
+
+  if (!savePdf && !saveZip){ document.getElementById('typeError').style.display='block'; return; }
+
+  const pw = parsePasswords(document.getElementById('pdfPasswords').value);
+  const pwError = document.getElementById('pwError');
+  if (pw.bad.length){
+    pwError.textContent = 'อ่านบรรทัดที่ ' + pw.bad.join(', ') + ' ไม่ได้ — ใช้รูปแบบ "เลข PASSWORD: รหัส"';
+    pwError.style.display = 'block';
+    return;
+  }
+  pwError.style.display = 'none';
+  const pwJson = JSON.stringify(pw.map, null, 2);
 
   document.getElementById('intervalLabel').textContent = intervalMap[interval];
 
-  const lines = [
-    '// ============================================================',
-    '//  ตั้งค่า — แก้ไขแล้ว ไม่ต้องแก้อีก',
-    '// ============================================================',
-    'const SENDER_EMAIL = "' + sender + '";',
-    'const FOLDER_NAME  = "' + folder + '";',
-    'const NOTIFY_EMAIL = "' + notify + '";',
-    '// Trigger ที่แนะนำ: ' + intervalMap[interval],
-    '// ============================================================',
-    '',
-    '// ใช้คำนำหน้าคีย์เพื่อป้องกันการชนกับค่าอื่นๆ ในระบบ Properties',
-    'const HISTORY_PREFIX = "PDF_SAVED_";',
-    '',
-    'function savePDFFromGmail() {',
-    '  const driveFolder = getOrCreateFolder(FOLDER_NAME);',
-    '  const props       = PropertiesService.getScriptProperties();',
-    '',
-    '  const query   = "from:" + SENDER_EMAIL + " has:attachment";',
-    '  const threads = GmailApp.search(query);',
-    '',
-    '  if (threads.length === 0) {',
-    '    Logger.log("ไม่พบ email จาก " + SENDER_EMAIL);',
-    '    return;',
-    '  }',
-    '',
-    '  const savedFiles   = [];',
-    '  const skippedFiles = [];',
-    '',
-    '  threads.forEach(function(thread) {',
-    '    thread.getMessages().forEach(function(message) {',
-    '      const msgId   = message.getId();',
-    '      const dateStr = Utilities.formatDate(',
-    '        message.getDate(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm"',
-    '      );',
-    '      message.getAttachments().forEach(function(att) {',
-    '        const fileName = att.getName();',
-    '        if (!fileName.toLowerCase().endsWith(".pdf")) return;',
-    '',
-    '        // 🔑 สร้างคีย์ประวัติแบบไม่ซ้ำจาก ID เมล + ชื่อไฟล์',
-    '        const historyKey = HISTORY_PREFIX + msgId + "_" + fileName;',
-    '',
-    '        // 🔍 ตรวจสอบว่าเคยเซฟหรือยังใน Script Properties',
-    '        if (props.getProperty(historyKey)) {',
-    '          skippedFiles.push(fileName);',
-    '          Logger.log("⚠️ ข้าม (เคยบันทึกแล้ว): " + fileName);',
-    '        } else {',
-    '          driveFolder.createFile(att);',
-    '          ',
-    '          // 💾 บันทึกคีย์ลง Script Properties เพื่อจำว่าเคยบันทึกแล้ว',
-    '          props.setProperty(historyKey, dateStr); ',
-    '          ',
-    '          savedFiles.push({ name: fileName, date: dateStr });',
-    '          Logger.log("✅ Saved: " + fileName);',
-    '        }',
-    '      });',
-    '    });',
-    '  });',
-    '',
-    '  if (savedFiles.length > 0) sendNotificationEmail(savedFiles, skippedFiles);',
-    '  Logger.log("เสร็จ — บันทึก " + savedFiles.length + " | ข้าม " + skippedFiles.length);',
-    '}',
-    '',
-    '// ⚠️ ฟังก์ชันสำหรับล้างประวัติการบันทึกทั้งหมด (ใช้เฉพาะตอนต้องการเริ่มใหม่และเซฟไฟล์ซ้ำทั้งหมด)',
-    'function clearHistory() {',
-    '  const props = PropertiesService.getScriptProperties();',
-    '  const keys  = props.getKeys();',
-    '  let count = 0;',
-    '  keys.forEach(function(key) {',
-    '    if (key.indexOf(HISTORY_PREFIX) === 0) {',
-    '      props.deleteProperty(key);',
-    '      count++;',
-    '    }',
-    '  });',
-    '  Logger.log("⚠️ ลบประวัติสำเร็จ " + count + " รายการ");',
-    '}',
-    '',
-    'function sendNotificationEmail(savedFiles, skippedFiles) {',
-    '  const now      = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm");',
-    '  const driveUrl = "https://drive.google.com/drive/search?q=" + encodeURIComponent(FOLDER_NAME);',
-    '  const rows = savedFiles.map(function(f) {',
-    '    return "<tr>" +',
-    '      "<td style=\'padding:6px 12px;border-bottom:1px solid #eee;\'>" + f.name + "</td>" +',
-    '      "<td style=\'padding:6px 12px;border-bottom:1px solid #eee;color:#555;\'>" + f.date + "</td>" +',
-    '    "</tr>";',
-    '  }).join("");',
-    '  const skippedHtml = skippedFiles.length > 0',
-    '    ? "<p style=\'color:#888;font-size:13px;margin-top:16px;\'>ข้าม: " + skippedFiles.length + " ไฟล์</p>"',
-    '    : "";',
-    '  const html =',
-    '    "<div style=\'font-family:Arial,sans-serif;max-width:600px;margin:auto;\'>" +',
-    '    "<h2 style=\'color:#4ade80;\'>✅ บันทึก PDF สำเร็จ</h2>" +',
-    '    "<p>เวลา: <strong>" + now + "</strong></p>" +',
-    '    "<p>บันทึกแล้ว <strong>" + savedFiles.length + " ไฟล์</strong> ลงใน <strong>" + FOLDER_NAME + "</strong></p>" +',
-    '    "<table style=\'border-collapse:collapse;width:100%;margin-top:12px;\'>" +',
-    '    "<thead><tr style=\'background:#4ade80;color:#052e16;\'>" +',
-    '    "<th style=\'padding:8px 12px;text-align:left;\'>ชื่อไฟล์</th>" +',
-    '    "<th style=\'padding:8px 12px;text-align:left;\'>วันที่รับ</th>" +',
-    '    "</tr></thead><tbody>" + rows + "</tbody></table>" +',
-    '    skippedHtml +',
-    '    "<p style=\'margin-top:20px;\'>" +',
-    '    "<a href=\'" + driveUrl + "\' style=\'background:#4ade80;color:#052e16;padding:10px 20px;" +',
-    '    "border-radius:8px;text-decoration:none;font-weight:600;\'>เปิด Google Drive →</a>" +',
-    '    "</p></div>";',
-    '',
-    '  GmailApp.sendEmail(',
-    '    NOTIFY_EMAIL,',
-    '    "[PDF Auto-Save] บันทึกสำเร็จ " + savedFiles.length + " ไฟล์ — " + now,',
-    '    "บันทึก " + savedFiles.length + " ไฟล์ลงใน " + FOLDER_NAME,',
-    '    { htmlBody: html }',
-    '  );',
-    '}',
-    '',
-    'function getOrCreateFolder(name) {',
-    '  const f = DriveApp.getFoldersByName(name);',
-    '  return f.hasNext() ? f.next() : DriveApp.createFolder(name);',
-    '}'
-  ];
+  const code = `// ============================================================
+//  ตั้งค่า
+// ============================================================
+const SENDER_EMAIL = "${sender}";
+const SUBJECT_FILTER = ${JSON.stringify(subject)};   // "" = ไม่กรอง subject | มีข้อความ = เอาเฉพาะเมลที่ subject มีคำนี้
+const FOLDER_NAME  = "${folder}";
+const NOTIFY_EMAIL = "${notify}";
 
-  document.getElementById('codeBox').textContent = lines.join('\n');
+const SAVE_PDF = ${savePdf};   // true = บันทึกไฟล์ .pdf
+const SAVE_ZIP = ${saveZip};   // true = บันทึกไฟล์ .zip
 
+// วิธีจัดการ ZIP: "keep" = เก็บเป็น .zip | "extract" = แตกไฟล์ทั้งหมด | "extractPdf" = แตกแล้วเก็บเฉพาะ PDF
+const ZIP_MODE = "${zipMode}";
+
+// 🔐 ปลดล็อค PDF: ถ้าชื่อไฟล์มี "เลข" นี้อยู่ จะปลดรหัสด้วย password ที่คู่กันก่อนบันทึก
+//    ⚠️ code นี้มี password อยู่ — อย่าแชร์ให้คนอื่น
+const PDF_PASSWORDS = ${pwJson};
+// Trigger ที่แนะนำ: ${intervalMap[interval]}
+// ============================================================
+
+const HISTORY_PREFIX = "PDF_SAVED_";
+const PDF_LIB_URL    = "https://cdn.jsdelivr.net/npm/@cantoo/pdf-lib@2.11.1/dist/pdf-lib.min.js";
+
+async function savePDFFromGmail() {
+  const driveFolder = getOrCreateFolder(FOLDER_NAME);
+  const props       = PropertiesService.getScriptProperties();
+
+  const exts = [];
+  if (SAVE_PDF) exts.push("filename:pdf");
+  if (SAVE_ZIP) exts.push("filename:zip");
+  const query   = "from:" + SENDER_EMAIL + " has:attachment (" + exts.join(" OR ") + ")";
+  const threads = GmailApp.search(query);
+
+  if (threads.length === 0) {
+    Logger.log("ไม่พบ email จาก " + SENDER_EMAIL);
+    return;
+  }
+
+  const savedFiles   = [];
+  const skippedFiles = [];
+  const failedUnlock = [];   // PDF ที่ปลดล็อคไม่สำเร็จ (บันทึกไฟล์ที่ยังติดรหัสไว้ให้)
+
+  for (const thread of threads) {
+    for (const message of thread.getMessages()) {
+      if (!matchesSubject(message.getSubject())) continue;
+
+      const msgId   = message.getId();
+      const dateStr = Utilities.formatDate(
+        message.getDate(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm"
+      );
+
+      for (const att of message.getAttachments()) {
+        const fileName = att.getName();
+        const lower    = fileName.toLowerCase();
+        const isPdf    = lower.endsWith(".pdf");
+        const isZip    = lower.endsWith(".zip");
+
+        if (!((isPdf && SAVE_PDF) || (isZip && SAVE_ZIP))) continue;
+
+        // 🔑 คีย์ประวัติ = ID เมล + ชื่อไฟล์
+        const historyKey = HISTORY_PREFIX + msgId + "_" + fileName;
+        if (props.getProperty(historyKey)) {
+          skippedFiles.push(fileName);
+          Logger.log("⚠️ ข้าม (เคยบันทึกแล้ว): " + fileName);
+          continue;
+        }
+
+        try {
+          if (isZip && ZIP_MODE !== "keep") {
+            await extractZip(att, driveFolder, dateStr, savedFiles, failedUnlock);
+          } else if (isPdf) {
+            const r = await unlockIfNeeded(att.copyBlob());
+            driveFolder.createFile(r.blob);
+            savedFiles.push({ name: fileName + r.note, date: dateStr });
+            if (r.failed) failedUnlock.push(fileName);
+            Logger.log("✅ Saved: " + fileName + r.note);
+          } else {
+            driveFolder.createFile(att);
+            savedFiles.push({ name: fileName, date: dateStr });
+            Logger.log("✅ Saved: " + fileName);
+          }
+        } catch (e) {
+          // โหลดตัวปลดล็อคไม่ได้ (เช่น เน็ตมีปัญหา) → ยังไม่จำประวัติ รอบหน้าจะลองใหม่
+          if (e.name === "PdfLibLoadError") {
+            Logger.log("⏳ " + e.message + " — ลองใหม่รอบหน้า: " + fileName);
+            continue;
+          }
+          throw e;
+        }
+
+        // 💾 จำว่าบันทึกแล้ว
+        props.setProperty(historyKey, dateStr);
+      }
+    }
+  }
+
+  if (savedFiles.length > 0) sendNotificationEmail(savedFiles, skippedFiles, failedUnlock);
+  Logger.log("เสร็จ — บันทึก " + savedFiles.length + " | ข้าม " + skippedFiles.length +
+             " | ปลดล็อคไม่สำเร็จ " + failedUnlock.length);
+}
+
+// 🔎 เช็คว่า subject มีคำใน SUBJECT_FILTER ไหม (ไม่สนตัวพิมพ์เล็ก/ใหญ่) — ถ้าไม่ได้ตั้ง = ผ่านทุกเมล
+function matchesSubject(subject) {
+  if (!SUBJECT_FILTER) return true;
+  return (subject || "").toLowerCase().indexOf(SUBJECT_FILTER.toLowerCase()) !== -1;
+}
+
+// 🗜️ แตกไฟล์ ZIP แล้วบันทึกไฟล์ข้างในลง Drive (ถ้าแตกไม่ได้ จะเก็บเป็น .zip แทน)
+async function extractZip(att, driveFolder, dateStr, savedFiles, failedUnlock) {
+  const zipName = att.getName();
+  let files;
+  try {
+    files = Utilities.unzip(att.copyBlob().setContentType("application/zip"));
+  } catch (e) {
+    Logger.log("❌ แตกไฟล์ไม่ได้ (" + e + ") — เก็บเป็น .zip แทน: " + zipName);
+    driveFolder.createFile(att);
+    savedFiles.push({ name: zipName + " (แตกไฟล์ไม่ได้)", date: dateStr });
+    return;
+  }
+
+  // เตรียมไฟล์ (รวมปลดล็อค) ให้ครบก่อนค่อยบันทึก — ถ้าโหลดตัวปลดล็อคไม่ได้ จะไม่มีไฟล์ถูกบันทึกครึ่งๆ กลางๆ
+  const ready = [];
+  for (const f of files) {
+    const fullName = f.getName();
+    if (!fullName || fullName.endsWith("/")) continue;          // ข้ามโฟลเดอร์
+    const baseName = fullName.split("/").pop();
+    if (baseName.indexOf(".") === 0 || fullName.indexOf("__MACOSX") === 0) continue; // ข้ามไฟล์ระบบของ Mac
+    if (ZIP_MODE === "extractPdf" && !baseName.toLowerCase().endsWith(".pdf")) continue;
+
+    ready.push({ name: baseName, r: await unlockIfNeeded(f.setName(baseName)) });
+  }
+
+  ready.forEach(function(item) {
+    driveFolder.createFile(item.r.blob);
+    savedFiles.push({ name: zipName + " → " + item.name + item.r.note, date: dateStr });
+    if (item.r.failed) failedUnlock.push(zipName + " → " + item.name);
+    Logger.log("✅ Extracted: " + zipName + " → " + item.name + item.r.note);
+  });
+
+  if (ready.length === 0) Logger.log("ℹ️ ไม่มีไฟล์ที่ต้องการใน " + zipName);
+}
+
+// 🔓 ปลดล็อค PDF ที่อยู่ในโฟลเดอร์ Drive แล้ว (รันเองครั้งเดียวสำหรับไฟล์เก่า)
+//    ไฟล์ติดรหัสจะถูกแทนด้วยไฟล์ปลดล็อค — ไฟล์เดิมย้ายไปถังขยะ (กู้คืนได้ 30 วัน)
+async function unlockExistingFiles() {
+  const folder = getOrCreateFolder(FOLDER_NAME);
+  const it = folder.getFiles();
+  let unlocked = 0, failed = 0;
+
+  while (it.hasNext()) {
+    const file = it.next();
+    const r = await unlockIfNeeded(file.getBlob().setName(file.getName()));
+    if (r.failed) failed++;
+    if (!r.unlocked) continue;
+
+    folder.createFile(r.blob);
+    try {
+      file.setTrashed(true);
+    } catch (e) {
+      Logger.log("⚠️ ย้ายไฟล์เดิมไปถังขยะไม่ได้ (" + e.message + "): " + file.getName());
+    }
+    unlocked++;
+  }
+  Logger.log("เสร็จ — ปลดล็อค " + unlocked + " | ปลดล็อคไม่สำเร็จ " + failed);
+}
+
+// 🔓 ถ้าชื่อไฟล์มีเลขใน PDF_PASSWORDS และไฟล์ติดรหัส → คืนไฟล์ที่ปลดล็อคแล้ว
+//    ปลดไม่สำเร็จ (เช่น password ผิด) → คืนไฟล์เดิม พร้อม failed = true
+async function unlockIfNeeded(blob) {
+  const name     = blob.getName();
+  const password = findPdfPassword(name);
+  if (password === null || !name.toLowerCase().endsWith(".pdf") || !looksEncrypted(blob)) {
+    return { blob: blob, note: "", unlocked: false, failed: false };
+  }
+
+  const PDFLib = loadPdfLib();
+  try {
+    const bytes = await decryptPdf(PDFLib, blob, password);
+    Logger.log("🔓 ปลดล็อคแล้ว: " + name);
+    return { blob: Utilities.newBlob(bytes, "application/pdf", name), note: " 🔓 ปลดล็อคแล้ว", unlocked: true, failed: false };
+  } catch (e) {
+    Logger.log("❌ ปลดล็อคไม่สำเร็จ (" + e.message + "): " + name);
+    return { blob: blob, note: " ⚠️ ปลดล็อคไม่สำเร็จ", unlocked: false, failed: true };
+  }
+}
+
+// เปิดไฟล์ด้วย password แล้วบันทึกใหม่แบบไม่เข้ารหัส + ตรวจซ้ำว่าไม่ติดรหัสแล้ว
+async function decryptPdf(PDFLib, blob, password) {
+  const input = new Uint8Array(blob.getBytes());
+  let doc = null, lastError = null;
+  for (const pw of [password, ""]) {   // "" = ไฟล์ที่ล็อคแค่สิทธิ์แก้ไข เปิดได้โดยไม่ใส่รหัส
+    try {
+      doc = await PDFLib.PDFDocument.load(input, { password: pw, allowWeakCryptography: true, updateMetadata: false });
+      break;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  if (!doc) throw lastError;
+
+  // ลบ XRef stream เก่า (ยังอ้างถึง /Encrypt) และ dict การเข้ารหัสเดิม ไม่ให้ติดไปในไฟล์ใหม่
+  const N = function(s) { return PDFLib.PDFName.of(s); };
+  doc.context.enumerateIndirectObjects().forEach(function(entry) {
+    const obj = entry[1];
+    const dict = obj.dict || (obj instanceof PDFLib.PDFDict ? obj : null);
+    let isXRef = dict !== null && dict.get(N("Type")) === N("XRef");
+    if (obj instanceof PDFLib.PDFInvalidObject) {
+      const head = obj.data.subarray(0, 2000);
+      isXRef = String.fromCharCode.apply(null, head).indexOf("/XRef") !== -1;
+    }
+    const isEncryptDict = dict !== null && dict.get(N("Filter")) === N("Standard") && dict.has(N("O"));
+    if (isXRef || isEncryptDict) doc.context.delete(entry[0]);
+  });
+
+  const output = await doc.save();
+  const check  = await PDFLib.PDFDocument.load(output, { ignoreEncryption: true, updateMetadata: false });
+  if (check.isEncrypted) throw new Error("ไฟล์ที่ได้ยังติดรหัส");
+  return Array.from(new Int8Array(output.buffer, output.byteOffset, output.byteLength));
+}
+
+function findPdfPassword(fileName) {
+  for (const number in PDF_PASSWORDS) {
+    if (fileName.indexOf(number) !== -1) return PDF_PASSWORDS[number];
+  }
+  return null;
+}
+
+// เช็คเร็วๆ ก่อนโหลด library — PDF ที่ติดรหัสจะมี /Encrypt อยู่ในไฟล์
+function looksEncrypted(blob) {
+  return blob.getDataAsString("ISO-8859-1").indexOf("/Encrypt") !== -1;
+}
+
+// โหลด pdf-lib (รองรับการถอดรหัส) จาก CDN — โหลดครั้งเดียวต่อรอบ และเฉพาะตอนมีไฟล์ต้องปลดล็อค
+function loadPdfLib() {
+  if (globalThis.PDFLib) return globalThis.PDFLib;
+  installPolyfills();
+  let source;
+  try {
+    source = UrlFetchApp.fetch(PDF_LIB_URL).getContentText("UTF-8");
+  } catch (e) {
+    const err = new Error("โหลดตัวปลดล็อค PDF ไม่ได้ (" + e.message + ")");
+    err.name = "PdfLibLoadError";
+    throw err;
+  }
+  (0, eval)(source);
+  return globalThis.PDFLib;
+}
+
+// Apps Script ไม่มี setTimeout / TextDecoder / TextEncoder ที่ pdf-lib ใช้ — เติมให้
+function installPolyfills() {
+  const g = globalThis;
+  if (typeof g.setTimeout === "undefined") {
+    g.setTimeout   = function(fn) { fn(); return 0; };
+    g.clearTimeout = function() {};
+  }
+  if (typeof g.TextDecoder === "undefined") {
+    g.TextDecoder = function(label) { this.label = (label || "utf-8").toLowerCase(); };
+    g.TextDecoder.prototype.decode = function(bytes) {
+      const b = bytes ? new Uint8Array(bytes.buffer || bytes, bytes.byteOffset || 0, bytes.byteLength) : new Uint8Array(0);
+      let s = "";
+      for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+      return this.label === "latin1" ? s : decodeURIComponent(escape(s));
+    };
+  }
+  if (typeof g.TextEncoder === "undefined") {
+    g.TextEncoder = function() {};
+    g.TextEncoder.prototype.encode = function(str) {
+      const s = unescape(encodeURIComponent(str || ""));
+      const out = new Uint8Array(s.length);
+      for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+      return out;
+    };
+  }
+}
+
+// ⚠️ ล้างประวัติทั้งหมด (ใช้เฉพาะตอนต้องการเซฟใหม่ทั้งหมด)
+function clearHistory() {
+  const props = PropertiesService.getScriptProperties();
+  let count = 0;
+  props.getKeys().forEach(function(key) {
+    if (key.indexOf(HISTORY_PREFIX) === 0) {
+      props.deleteProperty(key);
+      count++;
+    }
+  });
+  Logger.log("⚠️ ลบประวัติสำเร็จ " + count + " รายการ");
+}
+
+function sendNotificationEmail(savedFiles, skippedFiles, failedUnlock) {
+  const now      = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm");
+  const driveUrl = "https://drive.google.com/drive/search?q=" + encodeURIComponent(FOLDER_NAME);
+  const rows = savedFiles.map(function(f) {
+    return "<tr>" +
+      "<td style='padding:6px 12px;border-bottom:1px solid #eee;'>" + f.name + "</td>" +
+      "<td style='padding:6px 12px;border-bottom:1px solid #eee;color:#555;'>" + f.date + "</td>" +
+    "</tr>";
+  }).join("");
+  const skippedHtml = skippedFiles.length > 0
+    ? "<p style='color:#888;font-size:13px;margin-top:16px;'>ข้าม: " + skippedFiles.length + " ไฟล์</p>"
+    : "";
+  const failedHtml = failedUnlock.length > 0
+    ? "<p style='color:#dc2626;font-size:13px;margin-top:16px;'>⚠️ ปลดล็อคไม่สำเร็จ " + failedUnlock.length +
+      " ไฟล์ (บันทึกไฟล์ที่ยังติดรหัสไว้ — เช็ค password): " + failedUnlock.join(", ") + "</p>"
+    : "";
+  const html =
+    "<div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;'>" +
+    "<h2 style='color:#22c55e;'>✅ บันทึกไฟล์สำเร็จ</h2>" +
+    "<p>เวลา: <strong>" + now + "</strong></p>" +
+    "<p>บันทึกแล้ว <strong>" + savedFiles.length + " ไฟล์</strong> ลงใน <strong>" + FOLDER_NAME + "</strong></p>" +
+    "<table style='border-collapse:collapse;width:100%;margin-top:12px;'>" +
+    "<thead><tr style='background:#4ade80;color:#052e16;'>" +
+    "<th style='padding:8px 12px;text-align:left;'>ชื่อไฟล์</th>" +
+    "<th style='padding:8px 12px;text-align:left;'>วันที่รับ</th>" +
+    "</tr></thead><tbody>" + rows + "</tbody></table>" +
+    failedHtml + skippedHtml +
+    "<p style='margin-top:20px;'>" +
+    "<a href='" + driveUrl + "' style='background:#4ade80;color:#052e16;padding:10px 20px;" +
+    "border-radius:8px;text-decoration:none;font-weight:600;'>เปิด Google Drive</a>" +
+    "</p></div>";
+
+  GmailApp.sendEmail(
+    NOTIFY_EMAIL,
+    "[Auto-Save] บันทึกสำเร็จ " + savedFiles.length + " ไฟล์ — " + now,
+    "บันทึก " + savedFiles.length + " ไฟล์ลงใน " + FOLDER_NAME,
+    { htmlBody: html }
+  );
+}
+
+function getOrCreateFolder(name) {
+  const f = DriveApp.getFoldersByName(name);
+  return f.hasNext() ? f.next() : DriveApp.createFolder(name);
+}`;
+
+  document.getElementById('codeBox').textContent = code;
   const out = document.getElementById('output');
   out.classList.add('show');
-
-  setTimeout(() => {
-    const sb = document.getElementById('statusBar');
-    sb.classList.add('visible');
-    document.getElementById('statusText').textContent =
-      'code generated successfully — ready to paste';
-  }, 400);
-
-  setTimeout(() => out.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
-
-  const btn = document.querySelector('.btn-generate');
-  btn.style.background = '#22c55e';
-  setTimeout(() => { btn.style.background = ''; }, 280);
+  setTimeout(() => out.scrollIntoView({behavior:'smooth', block:'start'}), 120);
 }
 
-function copyCode() {
-  navigator.clipboard.writeText(document.getElementById('codeBox').textContent).then(() => {
+function copyCode(){
+  const text = document.getElementById('codeBox').textContent;
+  const done = () => {
     const btn = document.getElementById('copyBtn');
-    btn.classList.add('copied');
-    btn.textContent = '✓ Copied!';
-    document.getElementById('statusText').textContent =
-      '✓ copied to clipboard — go paste in Apps Script';
-    setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.textContent = '⧉ Copy code';
-      document.getElementById('statusText').textContent =
-        'code generated — ready to paste in Apps Script';
-    }, 2500);
-  });
+    btn.classList.add('copied'); btn.textContent = '✓ Copied!';
+    document.getElementById('statusText').textContent = '✓ คัดลอกแล้ว — ไปวางใน Apps Script ได้เลย';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '⧉ Copy code'; }, 2500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
 }
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+  ta.select(); try { document.execCommand('copy'); done(); } catch(e) {} ta.remove();
+}
+syncZip();
 </script>
 </body>
 </html>
